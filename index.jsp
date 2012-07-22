@@ -38,18 +38,12 @@
 </body>
 </html>
 <%!
+    private final Pattern tr = Pattern.compile("<tr[^>]*>.*?</tr>");
+    private final Pattern td = Pattern.compile("<td[^>]*>(.*?)</td>");
+
     private Iterable<Departure> readDepartures() throws IOException {
         BufferedReader in = new BufferedReader(getReader());
-        Pattern tr = Pattern.compile("<tr[^>]*>.*?</tr>");
-        Pattern td = Pattern.compile("<td[^>]*>(.*?)</td>");
-        String inputLine;
-        Collection<Departure> departures = new ArrayDeque<Departure>();
-        while ((inputLine = in.readLine()) != null) {
-            Matcher trm = tr.matcher(inputLine);
-            while (trm.find()) {
-                add(departures, getTdl(td.matcher(trm.group())));
-            }
-        }
+        Iterable<Departure> departures = readDepartures(in);
         in.close();
         return departures;
     }
@@ -59,17 +53,30 @@
         return new InputStreamReader(station.openStream());
     }
 
-    private void add(Collection<Departure> trl, Departure tdl) {
-        if (tdl != null) {
-            trl.add(tdl);
+    private Collection<Departure> readDepartures(BufferedReader in) throws IOException {
+        String line;
+        Collection<Departure> departures = new ArrayDeque<Departure>();
+
+        while ((line = in.readLine()) != null) {
+            add(departures, tr.matcher(line));
+        }
+
+        return departures;
+    }
+
+    private void add(Collection<Departure> departures, Matcher trm) {
+        while (trm.find()) {
+            departures.add(createDeparture(td.matcher(trm.group())));
         }
     }
 
-    private Departure getTdl(Matcher tdm) {
+    private Departure createDeparture(Matcher tdm) {
         List<String> tdl = new ArrayList<String>();
+
         while (tdm.find()) {
             tdl.add(tdm.group(1));
         }
+
         return new Departure(tdl.get(1), tdl.get(3));
     }
 
