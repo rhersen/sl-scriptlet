@@ -40,10 +40,10 @@
 </html>
 <%!
     private final Pattern tr = Pattern.compile("<tr[^>]*>.*?</tr>");
-
     private final Pattern td = Pattern.compile("<td[^>]*>(.*?)</td>");
     private final Pattern updated = Pattern.compile("Uppdaterat kl ([0-9:]+)");
     private final Pattern name = Pattern.compile("Pendeltåg, (.+)");
+
     private Departures readDepartures() throws IOException {
         BufferedReader in = new BufferedReader(getReader());
         Departures departures = readDepartures(in);
@@ -57,35 +57,29 @@
     }
 
     private Departures readDepartures(BufferedReader in) throws IOException {
+        List<String> lines = readLines(in);
+        return new Departures(getDepartureList(lines), findMatch(lines, updated), findMatch(lines, name));
+    }
+
+    private List<String> readLines(BufferedReader in) throws IOException {
         String line;
-        Departures departures = new Departures();
+        List<String> lines = new ArrayList<String>();
 
         while ((line = in.readLine()) != null) {
-            String match;
-            if ((match = match(line, updated)) != null) {
-                departures.updated = match;
-            } else if ((match = match(line, name)) != null) {
-                departures.name = match;
-            } else {
-                add(departures, tr.matcher(line));
+            lines.add(line);
+        }
+        return lines;
+    }
+
+    private List<Departure> getDepartureList(List<String> lines) {
+        List<Departure> r = new ArrayList<Departure>();
+        for (String line : lines) {
+            Matcher trm = tr.matcher(line);
+            while (trm.find()) {
+                r.add(createDeparture(td.matcher(trm.group())));
             }
         }
-
-        return departures;
-    }
-
-    private String match(String line, Pattern pattern) {
-        Matcher matcher = pattern.matcher(line);
-        if (matcher.find()) {
-            return matcher.group(1);
-        }
-        return null;
-    }
-
-    private void add(Departures departures, Matcher trm) {
-        while (trm.find()) {
-            departures.add(createDeparture(td.matcher(trm.group())));
-        }
+        return r;
     }
 
     private Departure createDeparture(Matcher tdm) {
@@ -98,13 +92,35 @@
         return new Departure(tdl.get(1), tdl.get(3));
     }
 
-    class Departures implements Iterable<Departure> {
-        private Collection<Departure> departures = new ArrayDeque<Departure>();
-        private String updated;
-        public String name;
+    private String findMatch(List<String> lines, Pattern pattern) {
+        for (String line : lines) {
+            String r = match(line, pattern);
 
-        public void add(Departure departure) {
-            departures.add(departure);
+            if (r != null) {
+                return r;
+            }
+        }
+
+        return null;
+    }
+
+    private String match(String line, Pattern pattern) {
+        Matcher matcher = pattern.matcher(line);
+        if (matcher.find()) {
+            return matcher.group(1);
+        }
+        return null;
+    }
+
+    class Departures implements Iterable<Departure> {
+        private final Collection<Departure> departures;
+        private final String updated;
+        public final String name;
+
+        Departures(Collection<Departure> departures, String updated, String name) {
+            this.departures = departures;
+            this.updated = updated;
+            this.name = name;
         }
 
         public Iterator<Departure> iterator() {
