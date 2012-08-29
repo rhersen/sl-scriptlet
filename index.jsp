@@ -2,12 +2,9 @@
 <%@ page import="java.io.IOException" %>
 <%@ page import="java.io.InputStreamReader" %>
 <%@ page import="java.net.URL" %>
-<%@ page import="java.util.ArrayDeque" %>
-<%@ page import="java.util.List" %>
 <%@ page import="java.util.regex.Matcher" %>
 <%@ page import="java.util.regex.Pattern" %>
-<%@ page import="java.util.ArrayList" %>
-<%@ page import="java.util.Collection" %>
+<%@ page import="java.util.*" %>
 <%@page contentType="text/html;charset=UTF-8" %>
 <%@page pageEncoding="UTF-8" %>
 <%@ page session="false" %>
@@ -25,25 +22,31 @@
 
 <ol>
     <%
-        for (Departure departure : readDepartures()) {
+        Departures departures1 = readDepartures();
+    %>
+    <div>
+        <%=departures1%>
+    </div>
+    <%
+    for (Departure departure : departures1) {
     %>
     <li>
         <%=departure%>
     </li>
-    <%
-        }
-    %>
+    <% } %>
 </ol>
 
 </body>
 </html>
 <%!
     private final Pattern tr = Pattern.compile("<tr[^>]*>.*?</tr>");
-    private final Pattern td = Pattern.compile("<td[^>]*>(.*?)</td>");
 
-    private Iterable<Departure> readDepartures() throws IOException {
+    private final Pattern td = Pattern.compile("<td[^>]*>(.*?)</td>");
+    private final Pattern updated = Pattern.compile("Uppdaterat kl ([0-9:]+)");
+    private final Pattern name = Pattern.compile("Pendeltåg, (.+)");
+    private Departures readDepartures() throws IOException {
         BufferedReader in = new BufferedReader(getReader());
-        Iterable<Departure> departures = readDepartures(in);
+        Departures departures = readDepartures(in);
         in.close();
         return departures;
     }
@@ -53,18 +56,33 @@
         return new InputStreamReader(station.openStream());
     }
 
-    private Collection<Departure> readDepartures(BufferedReader in) throws IOException {
+    private Departures readDepartures(BufferedReader in) throws IOException {
         String line;
-        Collection<Departure> departures = new ArrayDeque<Departure>();
+        Departures departures = new Departures();
 
         while ((line = in.readLine()) != null) {
-            add(departures, tr.matcher(line));
+            String match;
+            if ((match = match(line, updated)) != null) {
+                departures.updated = match;
+            } else if ((match = match(line, name)) != null) {
+                departures.name = match;
+            } else {
+                add(departures, tr.matcher(line));
+            }
         }
 
         return departures;
     }
 
-    private void add(Collection<Departure> departures, Matcher trm) {
+    private String match(String line, Pattern pattern) {
+        Matcher matcher = pattern.matcher(line);
+        if (matcher.find()) {
+            return matcher.group(1);
+        }
+        return null;
+    }
+
+    private void add(Departures departures, Matcher trm) {
         while (trm.find()) {
             departures.add(createDeparture(td.matcher(trm.group())));
         }
@@ -80,7 +98,29 @@
         return new Departure(tdl.get(1), tdl.get(3));
     }
 
-    static class Departure {
+    class Departures implements Iterable<Departure> {
+        private Collection<Departure> departures = new ArrayDeque<Departure>();
+        private String updated;
+        public String name;
+
+        public void add(Departure departure) {
+            departures.add(departure);
+        }
+
+        public Iterator<Departure> iterator() {
+            return departures.iterator();
+        }
+
+        public String toString() {
+            return "Departures{" +
+                    "departures=" + departures +
+                    ", updated='" + updated + '\'' +
+                    ", name='" + name + '\'' +
+                    '}';
+        }
+    }
+
+    class Departure {
         private final String destination;
         private final String time;
 
@@ -89,7 +129,6 @@
             this.time = time;
         }
 
-        @Override
         public String toString() {
             return "Departure{" +
                     "destination='" + destination + '\'' +
