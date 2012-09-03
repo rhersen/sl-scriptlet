@@ -1,0 +1,12 @@
+body {
+    background: #ccc;
+}
+
+table {
+    border: 5px outset;
+    border-spacing: 10px;
+}
+
+td, th {
+    border: 2px inset;
+}
