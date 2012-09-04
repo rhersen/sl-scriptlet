@@ -18,9 +18,10 @@
 <table id="departures">
     <tr>
         <th ></th>
-        <th id="updated">updated</th>
+        <th id="updated"></th>
         <th id="now"></th>
         <th id="millis"></th>
+        <th></th>
         <th id="name">name</th>
     </tr>
 </table>

@@ -3,6 +3,11 @@ $(document).ready(function () {
         var now = new Date();
         $('#now').html(now.toTimeString().substring(0, 8));
         $('#millis').html(now.getTime());
+        $('tr').each(function () {
+            var millis = $(this).children('td.millis');
+            console.log(millis.html());
+            $(this).children('td.countdown').html(millis.html() - now.getTime());
+        });
     }
 
     function success(data) {
@@ -14,10 +19,13 @@ $(document).ready(function () {
                 '<td>' + data.departures[i].time + '</td>' +
                 '<td>' + data.departures[i].absolute + '</td>' +
                 '<td>' + data.departures[i].relative + '</td>' +
-                '<td>' + data.departures[i].millis + '</td>' +
+                '<td class="millis">' + data.departures[i].millis + '</td>' +
+                '<td class="countdown">' + data.departures[i].millis + '</td>' +
                 '<td>' + data.departures[i].destination + '</td>' +
                 '</tr>');
         }
+
+        setInterval(setCurrentTime, 1000);
     }
 
     function error(jqXHR, textStatus, errorThrown) {
