@@ -1,12 +1,12 @@
 $(document).ready(function () {
     function setCurrentTime() {
-        var now = new Date();
-        $('#now').html(now.toTimeString().substring(0, 8));
-        $('#millis').html(now.getTime());
+        var date = new Date();
+        $('#now').html(date.toTimeString().substring(0, 8));
+        var now = date.getTime();
+        $('#millis').html(now);
         $('tr').each(function () {
-            var millis = $(this).children('td.millis');
-            console.log(millis.html());
-            $(this).children('td.countdown').html(millis.html() - now.getTime());
+            var millis = $(this).children('td.millis').html();
+            $(this).children('td.countdown').html(millis - now);
         });
     }
 
@@ -14,18 +14,29 @@ $(document).ready(function () {
         $('#name').html(data.name);
         $('#updated').html(data.updated);
         setCurrentTime();
+
         for (var i = 0; i < data.departures.length; i++) {
-            $('#departures').append('<tr>' +
-                '<td>' + data.departures[i].time + '</td>' +
-                '<td>' + data.departures[i].absolute + '</td>' +
-                '<td>' + data.departures[i].relative + '</td>' +
-                '<td class="millis">' + data.departures[i].millis + '</td>' +
-                '<td class="countdown">' + data.departures[i].millis + '</td>' +
-                '<td>' + data.departures[i].destination + '</td>' +
-                '</tr>');
+            $('#departures').append(createTableRow(data.departures[i]));
         }
 
         setInterval(setCurrentTime, 1000);
+
+        function createTableRow(departure) {
+            var row = $('<tr />');
+
+            row.append(createTableCell().text(departure.time));
+            row.append(createTableCell().text(departure.absolute));
+            row.append(createTableCell().text(departure.relative));
+            row.append(createTableCell().text(departure.millis).addClass('millis'));
+            row.append(createTableCell().text(departure.millis).addClass('countdown'));
+            row.append(createTableCell().text(departure.destination));
+
+            return row;
+
+            function createTableCell() {
+                return $('<td />');
+            }
+        }
     }
 
     function error(jqXHR, textStatus, errorThrown) {
