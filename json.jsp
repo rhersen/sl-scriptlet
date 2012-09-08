@@ -26,7 +26,7 @@
 "time": "<%=departure.time%>",
 "absolute": "<%=departure.getAbsolute(d.updated)%>",
 "relative": "<%=departure.getRelative(d.updated)%> min",
-"millis": "<%=System.currentTimeMillis() + ONE_MINUTE * departure.getRelative(d.updated)%>"
+"millis": "<%=System.currentTimeMillis() + 60000 * departure.getRelative(d.updated)%>"
 }
 <% if (i < d.elements().size() - 1) { %>
 ,
@@ -43,13 +43,13 @@
     for (String failure : getTestFailures()) {
         if (comma) {
 %>
-    ,
+,
 <%
     } else {
         comma = true;
     }
 %>
-    "<%= failure %>"
+"<%= failure %>"
 <%
     }
 %>
@@ -57,13 +57,88 @@
 }
 <% } %>
 
-<%! public static final int ONE_MINUTE = 60000;
+<%!
+    private void shouldNotChangeAbsoluteTime(Collection<String> failures) {
+        Departure target = new Departure("Södertälje", "16:10");
+        String result = target.getAbsolute("16:00");
+        assertEquals("16:10", result, failures);
+    }
+
+    private void shouldNotChangeRelativeTime(Collection<String> failures) {
+        Departure target = new Departure("Södertälje", "5 min");
+        int result = target.getRelative("16:00");
+        assertEquals(5, result, failures);
+    }
+
+    private void relativeTimeShouldBeZeroIfTimeIsNow(Collection<String> failures) {
+        Departure target = new Departure("Södertälje", "Nu");
+        int result = target.getRelative("16:00");
+        assertEquals(0, result, failures);
+    }
+
+    private void absoluteTimeShouldBeSameAsUpdateTimeIfTimeIsNow(Collection<String> failures) {
+        Departure target = new Departure("Södertälje", "Nu");
+        String result = target.getAbsolute("16:00");
+        assertEquals("16:00", result, failures);
+    }
+
+    private void shouldCalculateAbsoluteTime(Collection<String> failures) {
+        Departure target = new Departure("Södertälje", "10 min");
+        String result = target.getAbsolute("16:00");
+        assertEquals("16:10", result, failures);
+    }
+
+    private void shouldParseAbsoluteTime(Collection<String> failures) {
+        List<Departure> results = getDepartureList(Arrays.asList("<tr>" +
+                "<td>36</td>" +
+                "<td>Södertälje hamn</td>" +
+                "<td></td>" +
+                "<td>17:03</td>" +
+                "</tr>"));
+        if (results.isEmpty()) {
+            failures.add("getDepartureList not empty");
+        }
+
+        Departure result = results.get(0);
+        assertEquals("Södertälje hamn", result.destination, failures);
+        assertEquals(46, result.getRelative("16:17"), failures);
+    }
+
+    private void shouldParseRelativeTime(Collection<String> failures) {
+        List<Departure> results = getDepartureList(Arrays.asList("<tr>" +
+                "<td>36</td>" +
+                "<td>Södertälje hamn</td>" +
+                "<td></td>" +
+                "<td>15 min</td>" +
+                "</tr>"));
+        if (results.isEmpty()) {
+            failures.add("getDepartureList not empty");
+        }
+
+        Departure result = results.get(0);
+        assertEquals("Södertälje hamn", result.destination, failures);
+        assertEquals("16:32", result.getAbsolute("16:17"), failures);
+    }
+
+    private void assertEquals(Object expected, Object actual, Collection<String> failures) {
+        if (!actual.equals(expected)) {
+            failures.add("expected " + expected + " but got " + actual);
+        }
+    }
 
     private Iterable<String> getTestFailures() {
         Collection<String> failures = new ArrayList<String>();
         if (!getDepartureList(Collections.<String>emptyList()).isEmpty()) {
             failures.add("getDepartureList not empty");
         }
+
+        shouldParseRelativeTime(failures);
+        shouldParseAbsoluteTime(failures);
+        shouldCalculateAbsoluteTime(failures);
+        shouldNotChangeAbsoluteTime(failures);
+        shouldNotChangeRelativeTime(failures);
+        relativeTimeShouldBeZeroIfTimeIsNow(failures);
+        absoluteTimeShouldBeSameAsUpdateTimeIfTimeIsNow(failures);
 
         return failures;
     }
@@ -168,7 +243,6 @@
     }
 
     class Departure {
-        public static final int ONE_HOUR = 60;
         private final String destination;
         private final String time;
 
@@ -184,7 +258,11 @@
                     '}';
         }
 
-        public String getAbsolute(CharSequence updated) {
+        public String getAbsolute(String updated) {
+            if (time.equals("Nu")) {
+                return updated;
+            }
+
             Matcher rel = relative.matcher(time);
             if (!rel.matches()) {
                 return time;
@@ -205,24 +283,20 @@
                 return 0;
             }
 
-            Matcher abs = absolute.matcher(time);
-            if (!abs.matches()) {
-                Matcher rel = relative.matcher(time);
-                if (!rel.matches()) {
-                    return -1;
-                } else {
-                    return Integer.valueOf(rel.group(1));
-                }
+            Matcher rel = relative.matcher(time);
+            if (rel.matches()) {
+                return Integer.valueOf(rel.group(1));
             }
 
             Matcher now = absolute.matcher(updated);
-            if (!now.matches()) {
-                return -1;
+            Matcher abs = absolute.matcher(time);
+            if (!abs.matches() || !now.matches()) {
+                return 0;
             }
 
             int r = Integer.valueOf(abs.group(2)) - Integer.valueOf(now.group(2));
             if (r < 0) {
-                r += ONE_HOUR;
+                r += 60;
             }
 
             return r;
