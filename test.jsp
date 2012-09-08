@@ -14,18 +14,13 @@
 </head>
 <body>
 
-<table id="departures">
-    <tr>
-        <th ></th>
-        <th id="updated"></th>
-        <th id="now"></th>
-        <th id="millis"></th>
-        <th></th>
-        <th id="name">name</th>
-    </tr>
-</table>
+<ol id="failures"></ol>
 
-<script type="text/javascript" src="main.js">
+<div id="status">
+    running...
+</div>
+
+<script type="text/javascript" src="test.js">
 </script>
 
 </body>

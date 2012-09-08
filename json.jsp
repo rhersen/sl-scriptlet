@@ -9,7 +9,10 @@
 <%@page pageEncoding="UTF-8" %>
 <%@ page session="false" %>
 
-<% Departures d = readDepartures(); %>
+<%
+    if (request.getParameter("test") == null) {
+        Departures d = readDepartures();
+%>
 {
 "name": "<%=d.name%>",
 "updated": "<%=d.updated%>",
@@ -23,7 +26,7 @@
 "time": "<%=departure.time%>",
 "absolute": "<%=departure.getAbsolute(d.updated)%>",
 "relative": "<%=departure.getRelative(d.updated)%> min",
-"millis": "<%=System.currentTimeMillis() + 60000 * departure.getRelative(d.updated)%>"
+"millis": "<%=System.currentTimeMillis() + ONE_MINUTE * departure.getRelative(d.updated)%>"
 }
 <% if (i < d.elements().size() - 1) { %>
 ,
@@ -31,8 +34,40 @@
 } %>
 ]
 }
+<% } else { %>
+{
+"failures":
+[
+<%
+    boolean comma = false;
+    for (String failure : getTestFailures()) {
+        if (comma) {
+%>
+    ,
+<%
+    } else {
+        comma = true;
+    }
+%>
+    "<%= failure %>"
+<%
+    }
+%>
+]
+}
+<% } %>
 
-<%!
+<%! public static final int ONE_MINUTE = 60000;
+
+    private Iterable<String> getTestFailures() {
+        Collection<String> failures = new ArrayList<String>();
+        if (!getDepartureList(Collections.<String>emptyList()).isEmpty()) {
+            failures.add("getDepartureList not empty");
+        }
+
+        return failures;
+    }
+
     private final Pattern tr = Pattern.compile("<tr[^>]*>.*?</tr>");
     private final Pattern td = Pattern.compile("<td[^>]*>(.*?)</td>");
     private final Pattern updated = Pattern.compile("Uppdaterat kl ([0-9:]+)");
@@ -67,7 +102,7 @@
         return lines;
     }
 
-    private List<Departure> getDepartureList(List<String> lines) {
+    private List<Departure> getDepartureList(Iterable<String> lines) {
         List<Departure> r = new ArrayList<Departure>();
         for (String line : lines) {
             Matcher trm = tr.matcher(line);
@@ -88,7 +123,7 @@
         return new Departure(tdl.get(1), tdl.get(3));
     }
 
-    private String findMatch(List<String> lines, Pattern pattern) {
+    private String findMatch(Iterable<String> lines, Pattern pattern) {
         for (String line : lines) {
             String r = match(line, pattern);
 
@@ -100,7 +135,7 @@
         return null;
     }
 
-    private String match(String line, Pattern pattern) {
+    private String match(CharSequence line, Pattern pattern) {
         Matcher matcher = pattern.matcher(line);
         if (matcher.find()) {
             return matcher.group(1);
@@ -133,6 +168,7 @@
     }
 
     class Departure {
+        public static final int ONE_HOUR = 60;
         private final String destination;
         private final String time;
 
@@ -148,7 +184,7 @@
                     '}';
         }
 
-        public String getAbsolute(String updated) {
+        public String getAbsolute(CharSequence updated) {
             Matcher rel = relative.matcher(time);
             if (!rel.matches()) {
                 return time;
@@ -164,7 +200,11 @@
             return hour + ":" + minute;
         }
 
-        public int getRelative(String updated) {
+        public int getRelative(CharSequence updated) {
+            if (time.equals("Nu")) {
+                return 0;
+            }
+
             Matcher abs = absolute.matcher(time);
             if (!abs.matches()) {
                 Matcher rel = relative.matcher(time);
@@ -182,7 +222,7 @@
 
             int r = Integer.valueOf(abs.group(2)) - Integer.valueOf(now.group(2));
             if (r < 0) {
-                r += 60;
+                r += ONE_HOUR;
             }
 
             return r;
