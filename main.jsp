@@ -16,13 +16,16 @@
 
 <table id="departures">
     <tr>
+        <th ></th>
         <th id="updated"></th>
-        <th id="name">name</th>
         <th id="now"></th>
+        <th id="millis"></th>
+        <th></th>
+        <th id="name">name</th>
     </tr>
 </table>
 
-<script type="text/javascript" src="index.js">
+<script type="text/javascript" src="main.js">
 </script>
 
 </body>
