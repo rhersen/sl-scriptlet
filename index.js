@@ -1,4 +1,16 @@
-const INTERVAL = 256;
+function getCountdown(departure, now) {
+    function isNegative() { return departure < now; }
+    function getSign() { return isNegative() ? '-' : ''; }
+
+    function divideDiffBy(millis) {
+        function div(a, b) { return (a - a % b) / b; }
+        function getDiff() { return isNegative() ? now - departure : departure - now; }
+
+        return div(getDiff(), millis);
+    }
+
+    return getSign() + divideDiffBy(1000) + '.' + (divideDiffBy(100) % 10);
+}
 
 $(document).ready(function () {
     function setCurrentTime() {
@@ -8,7 +20,7 @@ $(document).ready(function () {
         $('#millis').html(now);
         $('tr').each(function () {
             var millis = $(this).data('millis');
-            $(this).children('td.countdown').html(millis - now);
+            $(this).children('td.countdown').html(getCountdown(millis, now));
         });
     }
 
@@ -21,7 +33,7 @@ $(document).ready(function () {
             $('#departures').append(createTableRow(data.departures[i]));
         }
 
-        setInterval(setCurrentTime, INTERVAL);
+        setInterval(setCurrentTime, 256);
 
         function createTableRow(departure) {
             var row = $('<tr />');

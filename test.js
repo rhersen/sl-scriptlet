@@ -4,7 +4,7 @@ $(document).ready(function () {
             $('ol#failures').append($('<li />').text(data.failures[i]));
         }
 
-        $('#status').text('done.');
+        $('#status').text('Java tests done.');
     }
 
     function error(jqXHR, textStatus, errorThrown) {
